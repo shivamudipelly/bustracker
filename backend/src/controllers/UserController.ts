@@ -53,9 +53,9 @@ export class UserController {
       res.cookie("token", token, {
         httpOnly: true,
         secure: environment.isProduction(),
-        sameSite: "lax",
+        sameSite: environment.isProduction() ? "none" : "lax",
         maxAge: cookieExpiry,
-      })
+      });
 
 
       const userResponse = {
