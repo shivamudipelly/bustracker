@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose, { Schema, Document, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 
 // Define user roles
@@ -12,7 +12,7 @@ export enum UserRole {
 export type UserStatus = "active" | "inactive" | "suspended";
 
 // Interface for the document (used with mongoose)
-export interface IUserDocument extends Document {
+export interface IUser extends Document<Types.ObjectId> {
   name: string;
   email: string;
   phone?: string;
@@ -28,7 +28,7 @@ export interface IUserDocument extends Document {
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-const UserSchema = new Schema<IUserDocument>(
+const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true, lowercase: true },
@@ -55,7 +55,7 @@ const UserSchema = new Schema<IUserDocument>(
 );
 
 // Pre-save hook to hash password if changed
-UserSchema.pre<IUserDocument>("save", async function (next) {
+UserSchema.pre<IUser>("save", async function (next) {
   if (!this.isModified("password")) return next();
 
   try {
@@ -75,8 +75,5 @@ UserSchema.methods.comparePassword = async function (
 };
 
 // Create model
-const User = mongoose.model<IUserDocument>("User", UserSchema);
+const User = mongoose.model<IUser>("User", UserSchema);
 export default User;
-
-// Optional for lightweight type
-export type IUser = Omit<IUserDocument, "comparePassword" | "__v">;

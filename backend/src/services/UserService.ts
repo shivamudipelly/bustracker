@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import bcrypt from "bcryptjs"
 import { UserRepository } from "../repositories/UserRepository"
-import type { IUser, CreateUserDto, UpdateUserDto, IUserService } from "../types"
+import { IUser, type CreateUserDto, type UpdateUserDto, type IUserService } from "../types"
 import { ConflictError, NotFoundError, ValidationError } from "../utils/errors"
 import { EmailService } from "./EmailService"
 import { logger } from "../config/logger"

@@ -1,5 +1,5 @@
 import { Types } from "mongoose"
-import User, { type IUser } from "../models/User"
+import User, { IUser } from "../models/User"
 import type { CreateUserDto, UpdateUserDto } from "../types"
 
 export class UserRepository {
@@ -20,7 +20,7 @@ export class UserRepository {
   }
 
   async findAll(): Promise<IUser[]> {
-    return await User.find().select("-password -verificationToken")
+    return await User.find()
   }
 
   async update(id: string, userData: UpdateUserDto): Promise<IUser | null> {
@@ -28,9 +28,7 @@ export class UserRepository {
       return null
     }
 
-    return await User.findByIdAndUpdate(id, { $set: userData }, { new: true, runValidators: true }).select(
-      "-password -verificationToken",
-    )
+    return await User.findByIdAndUpdate(id, { $set: userData }, { new: true, runValidators: true })
   }
 
   async delete(id: string): Promise<boolean> {

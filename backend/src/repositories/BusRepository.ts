@@ -1,5 +1,5 @@
 import { Types } from "mongoose"
-import Bus, { type IBus } from "../models/Bus"
+import Bus, { IBus } from "../models/Bus"
 import type { CreateBusDto, UpdateBusDto, ILocation } from "../types"
 
 export class BusRepository {

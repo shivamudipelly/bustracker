@@ -1,6 +1,6 @@
 import { BusRepository } from "../repositories/BusRepository"
 import { UserRepository } from "../repositories/UserRepository"
-import { type IBus, type CreateBusDto, type UpdateBusDto, type IBusService, type ILocation, UserRole } from "../types"
+import { IBus, type CreateBusDto, type UpdateBusDto, type IBusService, type ILocation, UserRole } from "../types"
 import { ConflictError, NotFoundError } from "../utils/errors"
 import { logger } from "../config/logger"
 
@@ -33,7 +33,7 @@ export class BusService implements IBusService {
     }
 
     // Check if driver is already assigned to another bus
-    const existingBusDriver = await this.busRepository.findByDriverId(driver._id)
+    const existingBusDriver = await this.busRepository.findByDriverId(driver._id as any)
     if (existingBusDriver) {
       throw new ConflictError("Bus with this driver already exists")
     }
@@ -41,7 +41,7 @@ export class BusService implements IBusService {
     const bus = await this.busRepository.create({
       ...busData,
       destination: busData.destination.toLowerCase(),
-      driverId: driver._id,
+      driverId: driver._id as any,
       location: { latitude: 0, longitude: 0 },
     })
 
@@ -74,8 +74,7 @@ export class BusService implements IBusService {
 
       // Check if driver is already assigned to another bus
       if (driver._id) {
-        const { Types } = require("mongoose")
-        const existingBusDriver = await this.busRepository.findByDriverId(new Types.ObjectId(driver._id))
+        const existingBusDriver = await this.busRepository.findByDriverId(driver._id as any)
         if (existingBusDriver) {
           throw new ConflictError("Bus with this driver already exists")
         }
@@ -134,7 +133,7 @@ export class BusService implements IBusService {
       return null
     }
 
-    return await this.busRepository.findByDriverId(driver._id)
+    return await this.busRepository.findByDriverId(driver._id as any)
   }
 
   async getDashboardStats(): Promise<{ totalBuses: number; totalDrivers: number }> {

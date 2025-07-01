@@ -1,8 +1,8 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Types } from "mongoose";
 import type { ILocation, IStop } from "../types";
 
 // Bus Document Interface
-export interface IBusDocument extends Document {
+export interface IBus extends Document<Types.ObjectId> {
   busId: number;
   destination: string;
   driverId: mongoose.Types.ObjectId; // Will be populated as User
@@ -32,7 +32,7 @@ const StopSchema = new Schema<IStop>({
 });
 
 // ✅ Final Bus Schema
-const BusSchema = new Schema<IBusDocument>(
+const BusSchema = new Schema<IBus>(
   {
     busId: { type: Number, required: true, unique: true },
     destination: { type: String, required: true },
@@ -52,6 +52,5 @@ const BusSchema = new Schema<IBusDocument>(
 );
 
 // ✅ Model & Type Export
-const Bus = mongoose.model<IBusDocument>("Bus", BusSchema);
+const Bus = mongoose.model<IBus>("Bus", BusSchema);
 export default Bus;
-export type IBus = IBusDocument;

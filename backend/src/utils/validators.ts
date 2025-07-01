@@ -43,8 +43,6 @@ export const createBusSchema = Joi.object<CreateBusDto>({
 
 // Bus validation schemas
 export const updateBusSchema = Joi.object<UpdateBusDto>({
-  busId: Joi.number().integer().positive().optional(),
-
   destination: Joi.string().min(2).max(100).optional(),
 
   source: Joi.string().min(2).max(100).optional(),

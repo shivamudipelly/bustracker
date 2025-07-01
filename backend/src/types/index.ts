@@ -1,5 +1,8 @@
 import type { Request } from "express"
 import type { Types, Document } from "mongoose"
+import { IUser } from "../models/User";
+import { IBus } from "../models/Bus";
+export { IUser, IBus };
 
 // Enums
 export enum UserRole {
@@ -22,34 +25,6 @@ export enum HttpStatus {
 }
 
 // Base interfaces
-export interface IUser extends Document {
-  _id: Types.ObjectId
-  name: string
-  email: string
-  phone?: string
-  password: string
-  role: UserRole
-  status: UserStatus
-  isVerified: boolean
-  verificationToken?: string
-  verificationTokenExpires?: Date
-  lastLogin?: Date
-  createdAt: Date
-  updatedAt: Date
-  comparePassword(candidatePassword: string): Promise<boolean>
-}
-
-export interface IBus extends Document {
-  _id: Types.ObjectId
-  busId: number
-  destination: string
-  driverId: Types.ObjectId
-  location: ILocation
-  stops: IStop[]
-  createdAt: Date
-  updatedAt: Date
-}
-
 export interface ILocation {
   latitude: number
   longitude: number
