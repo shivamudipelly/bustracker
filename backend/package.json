@@ -10,8 +10,7 @@
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "format": "prettier --write src/**/*.ts",
-    "typecheck": "tsc --noEmit",
-    "prepare": "husky install"
+    "typecheck": "tsc --noEmit"
   },
   "keywords": ["bus-tracking", "express", "typescript", "mongodb", "socket.io", "rest-api"],
   "author": "Your Name",
