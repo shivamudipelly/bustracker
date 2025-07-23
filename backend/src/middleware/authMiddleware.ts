@@ -23,6 +23,7 @@ export class AuthMiddleware {
       const decoded = jwt.verify(token, environment.get("JWT_SECRET")) as {
         userId: string
       }
+      console.log("Decoded JWT:", decoded);
 
       const user = await this.userService.getUserById(decoded.userId)
 
