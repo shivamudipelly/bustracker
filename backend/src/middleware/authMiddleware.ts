@@ -15,7 +15,8 @@ export class AuthMiddleware {
   authenticate = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
       const token = req.cookies?.token
-
+      console.log("JWT Token from cookie:", token);
+      
       if (!token) {
         throw new UnauthorizedError("Access denied. No token provided.")
       }
