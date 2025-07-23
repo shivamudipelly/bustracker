@@ -16,7 +16,7 @@ export class EmailService {
   }
 
   async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
-    const verificationLink = `${environment.get("FRONTEND_URL")}/api/users/verify-email?token=${token}`
+    const verificationLink = `${environment.get("FRONTEND_URL")}/verify-email?token=${token}`
 
     const html = `
       <html>

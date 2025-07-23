@@ -1,18 +1,21 @@
 import crypto from "crypto"
 import bcrypt from "bcryptjs"
 import { UserRepository } from "../repositories/UserRepository"
-import { IUser, type CreateUserDto, type UpdateUserDto, type IUserService } from "../types"
+import { IUser, type CreateUserDto, type UpdateUserDto, type IUserService, UserRole } from "../types"
 import { ConflictError, NotFoundError, ValidationError } from "../utils/errors"
 import { EmailService } from "./EmailService"
 import { logger } from "../config/logger"
+import { BusRepository } from "../repositories/BusRepository";
 
 export class UserService implements IUserService {
   private userRepository: UserRepository
   private emailService: EmailService
+  private busRepository: BusRepository
 
   constructor() {
     this.userRepository = new UserRepository()
     this.emailService = new EmailService()
+    this.busRepository = new BusRepository()
   }
 
   async createUser(userData: CreateUserDto): Promise<IUser> {
@@ -74,17 +77,32 @@ export class UserService implements IUserService {
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    const user = await this.userRepository.findById(id)
+    // 1. Find the user to ensure they exist before any other action.
+    const user = await this.userRepository.findById(id);
     if (!user) {
-      throw new NotFoundError("User")
+      throw new NotFoundError("User not found");
     }
 
-    const deleted = await this.userRepository.delete(id)
+    // 2. Check for conflicts if the user is a driver.
+    if (user.role === UserRole.DRIVER) {
+      // Query the bus collection to see if any bus is assigned to this driver's ID.
+      const assignedBus = await this.busRepository.findByDriverId(user._id);
+
+      // 3. If a bus is found, block the deletion and throw a clear error.
+      if (assignedBus) {
+        throw new ConflictError(
+          `Cannot delete this driver. They are currently assigned to Bus #${assignedBus.busId}. Please unassign them first.`
+        );
+      }
+    }
+
+    // 4. If all checks pass, proceed with the deletion.
+    const deleted = await this.userRepository.delete(id);
     if (deleted) {
-      logger.info(`User deleted: ${user.email}`)
+      logger.info(`User deleted: ${user.email}`);
     }
 
-    return deleted
+    return deleted;
   }
 
   async getAllUsers(): Promise<IUser[]> {
@@ -108,15 +126,15 @@ export class UserService implements IUserService {
   }
 
   private async sendVerificationEmail(user: any): Promise<void> {
-      const token = crypto.randomBytes(32).toString("hex")
-      const expirationTime = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
-  
-      user.verificationToken = token
-      user.verificationTokenExpires = expirationTime
-      await user.save()
-  
-      await this.emailService.sendVerificationEmail(user.email, user.name, token)
-    }
+    const token = crypto.randomBytes(32).toString("hex")
+    const expirationTime = new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+
+    user.verificationToken = token
+    user.verificationTokenExpires = expirationTime
+    await user.save()
+
+    await this.emailService.sendVerificationEmail(user.email, user.name, token)
+  }
 
   async sendPasswordResetEmail(email: string): Promise<void> {
     const user = await this.userRepository.findByEmail(email)

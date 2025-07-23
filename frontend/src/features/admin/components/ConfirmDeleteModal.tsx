@@ -1,36 +1,37 @@
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
-interface ConfirmDeleteModalProps {
-    userName: string;
+
+export const ConfirmDeleteModal = ({
+    onClose,
+    onConfirm,
+    itemName,
+}: {
+    onClose: () => void;
     onConfirm: () => void;
-    onCancel: () => void;
-}
-
-export const ConfirmDeleteModal = ({ userName, onConfirm, onCancel }: ConfirmDeleteModalProps) => {
+    itemName: string;
+}) => {
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
             <Card className="w-full max-w-md mx-4 shadow-2xl border-0 animate-scale-in">
-                <CardHeader className="border-b bg-gradient-to-r from-red-50 to-red-100">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-xl font-bold text-red-600">Delete User</CardTitle>
-                        <Button variant="ghost" size="sm" onClick={onCancel}>
-                            <X className="h-4 w-4 text-gray-600" />
-                        </Button>
+                <CardHeader className="text-center">
+                    <div className="mx-auto bg-red-100 rounded-full p-3 w-fit">
+                        <AlertTriangle className="h-8 w-8 text-red-600" />
                     </div>
+                    <CardTitle className="text-2xl font-bold mt-4">Confirm Deletion</CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                    <p className="text-gray-800">
-                        Are you sure you want to delete <span className="font-semibold">{userName}</span>?
-                        <br />
-                        This action cannot be undone.
+                <CardContent>
+                    <p className="text-center text-gray-600 mb-8">
+                        Are you sure you want to delete <strong>{itemName}</strong>? This action cannot be undone.
                     </p>
-                    <div className="flex justify-end gap-4 pt-4 border-t">
-                        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+                    <div className="grid grid-cols-2 gap-4">
+                        <Button variant="outline" onClick={onClose} className="hover:bg-gray-50">
+                            Cancel
+                        </Button>
                         <Button
-                            className="bg-red-600 hover:bg-red-700 text-white"
                             onClick={onConfirm}
+                            className="bg-red-600 hover:bg-red-700 text-white"
                         >
                             Delete
                         </Button>

@@ -56,8 +56,7 @@ export class BusController {
     try {
       const { busId } = req.params;
       const rawData = req.body;
-
-      console.log(`Updating bus with ID: ${busId}`, rawData);
+      console.log(busId, rawData);
       const response = await this.busService.updateBus(busId, rawData);
       ResponseHandler.success(res, response, "Bus updated successfully");
     } catch (error) {

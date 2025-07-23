@@ -67,7 +67,6 @@ export interface CreateBusDto {
   source?: string; // optional, backend default = "Anurag University"
   driverId: string; // 🚨 This is a driver email; backend must convert it
   capacity?: number; // optional, default 50
-  busType?: "standard" | "deluxe" | "mini" | "AC"; // optional
   location?: ILocation; // optional, can be generated on backend
   status?: "active" | "inactive" | "maintenance"; // optional
   stops: IStop[];

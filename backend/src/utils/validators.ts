@@ -28,39 +28,30 @@ export const loginSchema = Joi.object<LoginDto>({
   password: Joi.string().required(),
   rememberMe: Joi.boolean().optional(),
 })
+
+// ✅ CORRECTED: Bus creation schema now expects an email for driverId
 export const createBusSchema = Joi.object<CreateBusDto>({
   busId: Joi.number().integer().positive().required(),
   destination: Joi.string().min(2).max(100).required(),
   source: Joi.string().min(2).max(100).optional().default("Anurag University"),
-  driverId: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/) // ObjectId validation
-    .required(),
+  driverId: Joi.string().email().required(),
   capacity: Joi.number().integer().min(1).max(100).optional().default(50),
-  busType: Joi.string()
-    .valid("standard", "deluxe", "mini", "AC")
-    .optional(),
 });
 
-// Bus validation schemas
+// ✅ CORRECTED: Bus update schema now expects an email for driverId if provided
 export const updateBusSchema = Joi.object<UpdateBusDto>({
   destination: Joi.string().min(2).max(100).optional(),
-
   source: Joi.string().min(2).max(100).optional(),
-
-  driverId: Joi.string()
-    .regex(/^[0-9a-fA-F]{24}$/) // ObjectId validation
-    .optional(),
-
+  // Changed from ObjectId regex to email validation
+  driverId: Joi.string().email().optional(),
   status: Joi.string()
     .valid("active", "inactive", "maintenance")
     .optional(),
-
   location: Joi.object({
     latitude: Joi.number().required(),
     longitude: Joi.number().required(),
     timestamp: Joi.date().optional(),
   }).optional(),
-
   stops: Joi.array()
     .items(
       Joi.object({
@@ -69,9 +60,7 @@ export const updateBusSchema = Joi.object<UpdateBusDto>({
       }),
     )
     .optional(),
-
   capacity: Joi.number().integer().min(1).max(100).optional(),
-
   busType: Joi.string()
     .valid("standard", "deluxe", "mini", "AC")
     .optional(),
@@ -80,13 +69,10 @@ export const updateBusSchema = Joi.object<UpdateBusDto>({
 
 // Generic validation function
 export const validate = <T>(schema: Joi.ObjectSchema<T>, data: unknown): T => {
-
   const { error, value } = schema.validate(data, { abortEarly: false });
-
   if (error) {
     const errorMessage = error.details.map(detail => detail.message).join(', ');
     throw new Error(`Validation error: ${errorMessage}`);
   }
-
   return value;
 };

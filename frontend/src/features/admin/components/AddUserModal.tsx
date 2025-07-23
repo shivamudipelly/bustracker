@@ -3,7 +3,7 @@ import { X, Users, Mail, Phone, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from "@/components/ui/sonner";
-import { apiService } from '@/services/api';
+import { apiService, ApiError } from '@/services/api';
 
 interface AddUserModalProps {
   onClose: () => void;
@@ -11,20 +11,30 @@ interface AddUserModalProps {
 }
 
 export const AddUserModal = ({ onClose, onUserAdded }: AddUserModalProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    role: 'viewer',
+    role: 'driver', // Default to a more common role, now lowercase
     password: '',
     confirmPassword: ''
   });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match!');
+      setIsSubmitting(false);
       return;
     }
 
@@ -36,38 +46,36 @@ export const AddUserModal = ({ onClose, onUserAdded }: AddUserModalProps) => {
         role: formData.role,
         password: formData.password,
       });
-      console.log('User creation response:', response);
       
+      console.log('User creation response:', response);
 
       if (response.success && response.data) {
-        const fullUser = {
-          id: response.data.id || Date.now().toString(), // fallback if backend doesn’t send ID
-          name: response.data.name,
-          email: response.data.email,
-          phone: response.data.phone,
-          role: response.data.role || 'viewer',
-          status: response.data.status || 'active',
-          createdAt: response.data.createdAt || new Date().toISOString().split('T')[0],
-          lastLogin: response.data.lastLogin || 'Never',
-        };
+        // Pass the full user object from the backend to the parent
+        onUserAdded(response.data);
 
-        onUserAdded(fullUser);
-
-        toast.success('User added successfully!');
+        // ✅ CORRECTED: Check the isVerified flag from the API response
+        if (response.data.isVerified) {
+          toast.success('User added and verified successfully!');
+        } else {
+          // This message will show if for some reason the user was not auto-verified
+          toast.info('User added! A verification email has been sent.');
+        }
+        
         onClose();
       } else {
         toast.error(response.message || 'Failed to add user.');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Something went wrong!');
+    } catch (err) {
+      // It's better to check if the error is an instance of ApiError for more specific messages
+      if (err instanceof ApiError) {
+        toast.error(err.message);
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
+      console.error("User creation failed:", err);
+    } finally {
+        setIsSubmitting(false);
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData(prev => ({
-      ...prev,
-      [e.target.name]: e.target.value
-    }));
   };
 
   return (
@@ -135,7 +143,6 @@ export const AddUserModal = ({ onClose, onUserAdded }: AddUserModalProps) => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                   placeholder="Enter phone number"
-                  required
                 />
               </div>
 
@@ -151,6 +158,7 @@ export const AddUserModal = ({ onClose, onUserAdded }: AddUserModalProps) => {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                   required
                 >
+                  {/* CORRECTED: Values are now lowercase to match backend validation */}
                   <option value="viewer">Viewer</option>
                   <option value="driver">Driver</option>
                   <option value="admin">Admin</option>
@@ -193,14 +201,15 @@ export const AddUserModal = ({ onClose, onUserAdded }: AddUserModalProps) => {
             </div>
 
             <div className="flex justify-end space-x-4 pt-6 border-t">
-              <Button type="button" variant="outline" onClick={onClose} className="hover:bg-gray-50">
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="hover:bg-gray-50">
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300"
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add User
+                {isSubmitting ? 'Adding User...' : 'Add User'}
               </Button>
             </div>
           </form>

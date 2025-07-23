@@ -1,48 +1,24 @@
 import { useState } from 'react';
-import { X, Bus, MapPin, Users, Clock } from 'lucide-react';
+import { X, Bus, MapPin, Users, Clock, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useBusStore } from '@/stores/busStore';
 import { toast } from "@/components/ui/sonner";
+import { apiService, ApiError } from '@/services/api';
 
 interface AddBusModalProps {
   onClose: () => void;
+  onBusAdded: () => void; // Callback to refresh the parent component's data
 }
 
-export const AddBusModal = ({ onClose }: AddBusModalProps) => {
-  const { addBus } = useBusStore();
+export const AddBusModal = ({ onClose, onBusAdded }: AddBusModalProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    routeNumber: '',
-    routeName: '',
+    busId: '',
     source: '',
     destination: '',
-    driver: '',
+    driverEmail: '', // Changed from driver name to driver email
     capacity: '',
-    schedule: ''
   });
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const newBus = {
-      id: Date.now().toString(),
-      routeNumber: formData.routeNumber,
-      routeName: formData.routeName,
-      source: formData.source,
-      destination: formData.destination,
-      driver: formData.driver,
-      capacity: parseInt(formData.capacity),
-      schedule: formData.schedule,
-      status: 'active' as const,
-      lat: 0,
-      lng: 0,
-      lastUpdated: new Date().toISOString()
-    };
-
-    addBus(newBus);
-    toast.success('Bus added successfully!');
-    onClose();
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData(prev => ({
@@ -51,10 +27,59 @@ export const AddBusModal = ({ onClose }: AddBusModalProps) => {
     }));
   };
 
+  /**
+   * Handles the form submission to create a new bus.
+   * It constructs a payload that matches the backend's CreateBusDto.
+   */
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.busId || !formData.destination || !formData.driverEmail || !formData.capacity) {
+        toast.error("Please fill all required fields.");
+        return;
+    }
+
+    setIsSubmitting(true);
+
+    // This payload is structured to match the backend DTO and service logic.
+    // 'driverId' in the DTO is the driver's email address.
+    const busPayload = {
+      busId: Number(formData.busId),
+      destination: formData.destination,
+      driverId: formData.driverEmail, // Sending email as driverId, as expected by the service
+      source: formData.source,
+      capacity: parseInt(formData.capacity, 10),
+    };
+
+    try {
+      const response = await apiService.createBus(busPayload);
+      
+      if (response.success) {
+        toast.success(response.message || 'Bus added successfully!');
+        onBusAdded(); // Notify parent to refresh the bus list
+        onClose();    // Close the modal
+      } else {
+        // This case handles APIs that return { success: false } without throwing an error
+        toast.error(response.message || 'Failed to add bus.');
+      }
+    } catch (error) {
+      console.error("Failed to add bus:", error);
+      if (error instanceof ApiError) {
+        // The backend throws specific errors (e.g., ConflictError) which are caught here.
+        toast.error(`Error: ${error.message}`);
+      } else {
+        toast.error('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
       <Card className="w-full max-w-2xl mx-4 shadow-2xl border-0 animate-scale-in">
-        <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+        <CardHeader className="border-b bg-gradient-to-r from-slate-50 to-gray-50">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-500 rounded-lg">
@@ -69,43 +94,27 @@ export const AddBusModal = ({ onClose }: AddBusModalProps) => {
         </CardHeader>
         <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Bus className="inline h-4 w-4 mr-1" />
-                  Route Number
-                </label>
-                <input
-                  type="text"
-                  name="routeNumber"
-                  value={formData.routeNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  placeholder="e.g., B101"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Route Name
-                </label>
-                <input
-                  type="text"
-                  name="routeName"
-                  value={formData.routeName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  placeholder="e.g., Central Line"
-                  required
-                />
-              </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Hash className="inline h-4 w-4 mr-1" />
+                Bus / Route Number
+              </label>
+              <input
+                type="number"
+                name="busId"
+                value={formData.busId}
+                onChange={handleChange}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                placeholder="e.g., 101"
+                required
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <MapPin className="inline h-4 w-4 mr-1" />
+                  <MapPin className="inline h-4 w-4 mr-1 text-red-500" />
                   Source
                 </label>
                 <input
@@ -114,13 +123,12 @@ export const AddBusModal = ({ onClose }: AddBusModalProps) => {
                   value={formData.source}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  placeholder="Starting point"
-                  required
+                  placeholder="Starting point (e.g., Anurag University)"
                 />
               </div>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <MapPin className="inline h-4 w-4 mr-1 text-green-500" />
                   Destination
                 </label>
                 <input
@@ -135,19 +143,20 @@ export const AddBusModal = ({ onClose }: AddBusModalProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <Users className="inline h-4 w-4 mr-1" />
-                  Driver
+                  Driver's Email
                 </label>
                 <input
-                  type="text"
-                  name="driver"
-                  value={formData.driver}
+                  type="email"
+                  name="driverEmail"
+                  value={formData.driverEmail}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  placeholder="Driver name"
+                  placeholder="driver@example.com"
+                  required
                 />
               </div>
               
@@ -161,42 +170,23 @@ export const AddBusModal = ({ onClose }: AddBusModalProps) => {
                   value={formData.capacity}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  placeholder="50"
+                  placeholder="e.g., 50"
                   min="1"
                   required
                 />
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Clock className="inline h-4 w-4 mr-1" />
-                  Schedule
-                </label>
-                <select
-                  name="schedule"
-                  value={formData.schedule}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  required
-                >
-                  <option value="">Select schedule</option>
-                  <option value="morning">Morning Shift</option>
-                  <option value="afternoon">Afternoon Shift</option>
-                  <option value="evening">Evening Shift</option>
-                  <option value="fullday">Full Day</option>
-                </select>
-              </div>
             </div>
 
             <div className="flex justify-end space-x-4 pt-6 border-t">
-              <Button type="button" variant="outline" onClick={onClose} className="hover:bg-gray-50">
+              <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting} className="hover:bg-gray-50">
                 Cancel
               </Button>
               <Button 
                 type="submit" 
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300"
+                disabled={isSubmitting}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Add Bus
+                {isSubmitting ? 'Adding Bus...' : 'Add Bus'}
               </Button>
             </div>
           </form>

@@ -11,7 +11,6 @@ export interface IBus extends Document<Types.ObjectId> {
   createdAt: Date;
   updatedAt: Date;
   capacity: number;
-  busType: string;
   source?: string;
   status: 'active' | 'inactive' | 'maintenance';
 }
@@ -46,7 +45,6 @@ const BusSchema = new Schema<IBus>(
     location: { type: LocationSchema, required: true },
     stops: { type: [StopSchema], default: [] },
     capacity: { type: Number, default: 50 },
-    busType: { type: String, default: "standard" },
   },
   { timestamps: true },
 );

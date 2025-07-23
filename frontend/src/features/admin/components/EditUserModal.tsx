@@ -3,12 +3,12 @@ import { X, Users, Mail, Phone, Shield, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from "@/components/ui/sonner";
-import { apiService } from "@/services/api";
+import { apiService, ApiError } from "@/services/api"; // Import ApiError
 
 interface EditUserModalProps {
   user: any;
   onClose: () => void;
-  onUserUpdated: (user: any) => void;
+  onUserUpdated: () => void;
 }
 
 export const EditUserModal = ({ user, onClose, onUserUpdated }: EditUserModalProps) => {
@@ -39,13 +39,19 @@ export const EditUserModal = ({ user, onClose, onUserUpdated }: EditUserModalPro
 
       if (response.success) {
         toast.success('User updated successfully!');
-        onUserUpdated({ ...user, ...formData }); // Update parent state
+        // ✅ Call the updated handler to signal the parent component to refetch the user list.
+        onUserUpdated(); 
         onClose();
       } else {
         toast.error(response.message || "Update failed.");
       }
     } catch (err: any) {
-      toast.error(err.message || "Something went wrong!");
+      if (err instanceof ApiError) {
+        toast.error(err.message);
+      } else {
+        toast.error("An unexpected error occurred.");
+      }
+      console.error("Failed to update user:", err);
     } finally {
       setLoading(false);
     }
@@ -114,7 +120,6 @@ export const EditUserModal = ({ user, onClose, onUserUpdated }: EditUserModalPro
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                  required
                 />
               </div>
 

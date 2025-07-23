@@ -19,6 +19,7 @@ export class BusService implements IBusService {
     if (!driver || driver.role !== UserRole.DRIVER) {
       throw new NotFoundError("Driver not found or not a DRIVER")
     }
+    console.log(driver);
 
     // Check for duplicate bus ID
     const existingBusById = await this.busRepository.findByBusId(busData.busId.toString())
@@ -64,6 +65,8 @@ export class BusService implements IBusService {
     }
 
     // Validate driver if provided
+    console.log(busData);
+    
     if (busData.driverId) {
       const driver = await this.userRepository.findByEmail(busData.driverId)
       console.log(`Updating bus ${id} with driver ${busData.driverId}`, driver);

@@ -186,14 +186,14 @@ export const UserManagement = () => {
         <EditUserModal
           user={editingUser}
           onClose={() => setEditingUser(null)}
-          onUserUpdated={(updated) => setUsers(prev => prev.map(u => u.id === updated.id ? updated : u))}
+          onUserUpdated={() => setUsers(prev => prev.map(u => u.id === editingUser.id ? editingUser : u))}
         />
       )}
       {deleteUserId && (
         <ConfirmDeleteModal
-          userName={deleteUserName}
+          itemName={deleteUserName}
           onConfirm={confirmDelete}
-          onCancel={() => {
+          onClose={() => {
             setDeleteUserId(null);
             setDeleteUserName('');
           }}

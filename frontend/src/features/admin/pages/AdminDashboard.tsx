@@ -148,7 +148,7 @@ export const AdminDashboard = () => {
               </h1>
               <p className="text-gray-600 mt-2 text-lg">Monitor and manage your bus fleet</p>
             </div>
-            <div className="flex gap-3">
+            {/* <div className="flex gap-3">
               <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Bus
@@ -157,7 +157,7 @@ export const AdminDashboard = () => {
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Reports
               </Button>
-            </div>
+            </div> */}
           </div>
         </div>
 

@@ -36,7 +36,7 @@ export class AdminController {
       const userData = validate(createUserSchema, req.body)
       const user = await this.userService.createUser({ ...userData })
       console.log(user);
-      
+
       // If admin is adding user, verify immediately
       if (user.verificationToken) {
         await this.userService.verifyUser(user.verificationToken)
@@ -66,13 +66,13 @@ export class AdminController {
     try {
       const { email } = req.params
       const user = await this.userService.getUserByEmail(email)
-  
+
       if (!user) {
         ResponseHandler.error(res, "User not found", 404)
         return
       }
 
-      const sanitizedUser = {_id: user._id, email: user.email}
+      const sanitizedUser = { _id: user._id, email: user.email }
 
       ResponseHandler.success(res, sanitizedUser, "User retrieved successfully")
     } catch (error) {

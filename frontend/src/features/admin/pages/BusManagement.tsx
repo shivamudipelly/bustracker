@@ -1,51 +1,80 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Filter, Edit, Trash2, MapPin, Users, Settings, Calendar, Clock, Bus, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, Edit, Trash2, MapPin, Users, Settings, Clock, Bus as BusIcon, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useBusStore } from '@/stores/busStore';
 import { AddBusModal } from '../components/AddBusModal';
 import { EditBusModal } from '../components/EditBusModal';
 import { apiService } from '@/services/api';
 import { Bus as IBus } from '@/types/driver';
 import { toast } from '@/components/ui/sonner';
-import { log } from 'console';
+import { ConfirmDeleteModal } from '../components/ConfirmDeleteModal';
 
 export const BusManagement = () => {
-  const { buses, setBuses } = useBusStore();
+  const [buses, setBuses] = useState<IBus[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [editingBus, setEditingBus] = useState(null);
+  const [editingBus, setEditingBus] = useState<IBus | null>(null);
+  const [busToDelete, setBusToDelete] = useState<IBus | null>(null); // State for the confirmation modal
+
+  // Function to fetch bus data from the API
+  const fetchBuses = async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.getAllBusesForDashboard();
+      if (response.success && Array.isArray(response.data)) {
+        setBuses(response.data as IBus[]);
+      } else {
+        toast.error('Failed to load buses. Please try again later.');
+        setBuses([]);
+      }
+    } catch (error) {
+      console.error("Error fetching buses:", error);
+      toast.error('An error occurred while fetching buses.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading
-    const fetchBuses = async () => {
-      try {
-        const response = await apiService.getAllBusesForDashboard();
-       console.log('Fetched buses:', response);
-        if (response.success) {
-          setBuses(response.data as unknown as IBus[] );
-        } else {
-          toast.error('Failed to load buses. Please try again later.');
-        }
-      } catch (error) {
-        toast.error('Failed to load buses. Please try again later.');
-      }
-    };
     fetchBuses();
-    setLoading(false);
   }, []);
 
-  console.log(buses);
+  // Handler to be called when a new bus is successfully added
+  const handleBusAdded = () => {
+    fetchBuses();
+  };
 
+  // ✅ This function is called when the user confirms the deletion in the modal
+  const handleConfirmDelete = async () => {
+    if (!busToDelete) return;
+
+    try {
+      const response = await apiService.deleteBus(busToDelete._id);
+      if (response.success) {
+        toast.success(response.message || "Bus deleted successfully!");
+        fetchBuses(); // Refresh the list
+      } else {
+        toast.error(response.message || "Failed to delete bus.");
+      }
+    } catch (error) {
+      toast.error("An error occurred while deleting the bus.");
+    } finally {
+      setBusToDelete(null); // Close the modal
+    }
+  };
 
   const filteredBuses = buses.filter(bus => {
-    const matchesSearch = bus.busId.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
-      bus.busId.toString().toLowerCase().includes(searchTerm.toLowerCase());
+    const busIdStr = bus.busId ? bus.busId.toString().toLowerCase() : '';
+    const driverNameStr = bus.driverId?.name ? bus.driverId.name.toLowerCase() : '';
+    const searchLower = searchTerm.toLowerCase();
+
+    const matchesSearch = busIdStr.includes(searchLower) || driverNameStr.includes(searchLower);
     const matchesStatus = filterStatus === 'all' || bus.status === filterStatus;
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -95,7 +124,7 @@ export const BusManagement = () => {
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
             {[
-              { title: 'Total Buses', value: buses.length, icon: Bus, color: 'blue' },
+              { title: 'Total Buses', value: buses.length, icon: BusIcon, color: 'blue' },
               { title: 'Active', value: buses.filter(b => b.status === 'active').length, icon: MapPin, color: 'green' },
               { title: 'Maintenance', value: buses.filter(b => b.status === 'maintenance').length, icon: Settings, color: 'yellow' },
               { title: 'Inactive', value: buses.filter(b => b.status === 'inactive').length, icon: AlertTriangle, color: 'red' }
@@ -125,7 +154,7 @@ export const BusManagement = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <input
                   type="text"
-                  placeholder="Search buses..."
+                  placeholder="Search buses by ID or Driver..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
@@ -142,9 +171,6 @@ export const BusManagement = () => {
                   <option value="maintenance">Maintenance</option>
                   <option value="inactive">Inactive</option>
                 </select>
-                <Button variant="outline" className="border-2 hover:bg-gray-50 transition-all duration-300">
-                  <Filter className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </CardContent>
@@ -173,7 +199,7 @@ export const BusManagement = () => {
                     <TableRow key={bus._id} className="hover:bg-gray-50 transition-colors duration-200 animate-slide-in-right" style={{ animationDelay: `${index * 50}ms` }}>
                       <TableCell>
                         <div>
-                          <p className="font-semibold">{bus.busId} - {bus.source} to {bus.destination}</p>
+                          <p className="font-semibold">{bus.busId}</p>
                           <p className="text-sm text-gray-500">{bus.source} → {bus.destination}</p>
                         </div>
                       </TableCell>
@@ -182,7 +208,7 @@ export const BusManagement = () => {
                           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                             <Users className="h-4 w-4 text-white" />
                           </div>
-                          <span>{bus.driverId && bus.driverId.name || 'Unassigned'}</span>
+                          <span>{bus.driverId?.name || 'Unassigned'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -193,13 +219,13 @@ export const BusManagement = () => {
                       <TableCell>
                         <div className="flex items-center space-x-1">
                           <Users className="h-4 w-4 text-gray-400" />
-                          <span>{bus.capacity || '50'}</span>
+                          <span>{bus.capacity || 'N/A'}</span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1 text-gray-500">
                           <Clock className="h-4 w-4" />
-                          <span>2 min ago</span>
+                          <span>{new Date(bus.updatedAt).toLocaleDateString()}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -215,6 +241,7 @@ export const BusManagement = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            onClick={() => setBusToDelete(bus)} // ✅ Open confirmation modal
                             className="hover:bg-red-50 hover:border-red-300 text-red-600 transition-all duration-200"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -231,8 +258,27 @@ export const BusManagement = () => {
       </div>
 
       {/* Modals */}
-      {showAddModal && <AddBusModal onClose={() => setShowAddModal(false)} />}
-      {editingBus && <EditBusModal bus={editingBus} onClose={() => setEditingBus(null)} />}
+      {showAddModal && (
+        <AddBusModal 
+          onClose={() => setShowAddModal(false)}
+          onBusAdded={handleBusAdded}
+        />
+      )}
+      {editingBus && (
+        <EditBusModal 
+            bus={editingBus} 
+            onClose={() => setEditingBus(null)}
+            onBusUpdated={fetchBuses}
+        />
+      )}
+      {/* ✅ Render the confirmation modal when a bus is selected for deletion */}
+      {busToDelete && (
+        <ConfirmDeleteModal
+            onClose={() => setBusToDelete(null)}
+            onConfirm={handleConfirmDelete}
+            itemName={`Bus #${busToDelete.busId}`}
+        />
+      )}
     </div>
   );
 };
