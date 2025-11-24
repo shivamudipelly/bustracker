@@ -7,19 +7,20 @@ export class EmailService {
 
   constructor() {
     this.transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
       auth: {
         user: environment.get("EMAIL_USER"),
         pass: environment.get("EMAIL_PASS"),
       },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
   }
 
-  async sendVerificationEmail(
-    email: string,
-    name: string,
-    token: string,
-  ): Promise<void> {
+  async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
     const verificationLink = `${environment.get("FRONTEND_URL")}/verify-email?token=${token}`;
 
     const html = `
@@ -40,11 +41,7 @@ export class EmailService {
     logger.info(`Verification email sent to: ${email}`);
   }
 
-  async sendPasswordResetEmail(
-    email: string,
-    name: string,
-    token: string,
-  ): Promise<void> {
+  async sendPasswordResetEmail(email: string, name: string, token: string): Promise<void> {
     const resetLink = `${environment.get("FRONTEND_URL")}/reset-password?token=${token}`;
 
     const html = `
@@ -66,11 +63,7 @@ export class EmailService {
     logger.info(`Password reset email sent to: ${email}`);
   }
 
-  private async sendEmail(
-    to: string,
-    subject: string,
-    html: string,
-  ): Promise<void> {
+  private async sendEmail(to: string, subject: string, html: string): Promise<void> {
     try {
       await this.transporter.sendMail({
         from: environment.get("EMAIL_USER"),
