@@ -1,32 +1,6 @@
-import mongoose, { Schema, Document, Types } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import bcrypt from "bcryptjs";
-
-// Define user roles
-export enum UserRole {
-  ADMIN = "admin",
-  DRIVER = "driver",
-  VIEWER = "viewer",
-}
-
-// Define user status
-export type UserStatus = "active" | "inactive" | "suspended";
-
-// Interface for the document (used with mongoose)
-export interface IUser extends Document<Types.ObjectId> {
-  name: string;
-  email: string;
-  phone?: string;
-  password: string;
-  role: UserRole;
-  status: UserStatus;
-  isVerified: boolean;
-  verificationToken?: string;
-  verificationTokenExpires?: Date;
-  lastLogin?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-  comparePassword(candidatePassword: string): Promise<boolean>;
-}
+import { IUser, UserRole } from "../types";
 
 const UserSchema = new Schema<IUser>(
   {
@@ -50,14 +24,19 @@ const UserSchema = new Schema<IUser>(
     lastLogin: { type: Date },
   },
   {
-    timestamps: true, // adds createdAt and updatedAt
-  }
+    timestamps: true,
+  },
 );
 
-// Pre-save hook to hash password if changed
+// ✅ DB OPTIMIZATION: Index for Dashboard Stats (counting drivers)
+UserSchema.index({ role: 1 });
+
+// ✅ DB OPTIMIZATION: Index for Email Verification lookups
+UserSchema.index({ verificationToken: 1 });
+
+// Pre-save hook to hash password
 UserSchema.pre<IUser>("save", async function (next) {
   if (!this.isModified("password")) return next();
-
   try {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -67,13 +46,11 @@ UserSchema.pre<IUser>("save", async function (next) {
   }
 });
 
-// Compare password method
 UserSchema.methods.comparePassword = async function (
-  candidatePassword: string
+  candidatePassword: string,
 ): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Create model
 const User = mongoose.model<IUser>("User", UserSchema);
 export default User;

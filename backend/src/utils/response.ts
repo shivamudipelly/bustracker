@@ -1,5 +1,5 @@
-import type { Response } from "express"
-import { type ApiResponse, type PaginatedResponse, HttpStatus } from "../types"
+import type { Response } from "express";
+import { type ApiResponse, type PaginatedResponse, HttpStatus } from "../types";
 
 export class ResponseHandler {
   static success<T>(
@@ -12,7 +12,7 @@ export class ResponseHandler {
       success: true,
       message,
       data,
-    })
+    });
   }
 
   static error(
@@ -25,7 +25,7 @@ export class ResponseHandler {
       success: false,
       message,
       error,
-    })
+    });
   }
 
   static paginated<T>(
@@ -36,7 +36,7 @@ export class ResponseHandler {
     total: number,
     message = "Success",
   ): Response<PaginatedResponse<T>> {
-    const totalPages = Math.ceil(total / limit)
+    const totalPages = Math.ceil(total / limit);
 
     return res.status(HttpStatus.OK).json({
       success: true,
@@ -48,6 +48,6 @@ export class ResponseHandler {
         total,
         totalPages,
       },
-    })
+    });
   }
 }

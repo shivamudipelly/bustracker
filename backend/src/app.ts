@@ -1,64 +1,68 @@
-import express, { type Application } from "express"
-import http from "http"
-import { Server } from "socket.io"
-import cors from "cors"
-import helmet from "helmet"
-import rateLimit from "express-rate-limit"
-import cookieParser from "cookie-parser"
+import express, { Application } from "express";
+import http from "http";
+import { Server } from "socket.io";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 
-import { databaseConnection } from "./config/database"
-import { environment } from "./config/environment"
-import { logger } from "./config/logger"
+import { environment } from "./config/environment";
+import { logger } from "./config/logger";
+import { databaseConnection } from "./config/database";
 
-import userRoutes from "./routes/userRoutes"
-import adminRoutes from "./routes/adminRoutes"
-import busRoutes from "./routes/busRoutes"
-import dashboardRoutes from "./routes/dashboardRoutes"
+// Routes
+import userRoutes from "./routes/userRoutes";
+import adminRoutes from "./routes/adminRoutes";
+import busRoutes from "./routes/busRoutes";
+import dashboardRoutes from "./routes/dashboardRoutes";
 
-import { errorHandler, notFoundHandler } from "./middleware/errorMiddleware"
-import { SocketHandlers } from "./socket/socketHandlers"
+// Middleware & Handlers
+import { errorHandler, notFoundHandler } from "./middleware/errorMiddleware";
+import { requestLogger } from "./middleware/requestLogger";
+import { SocketHandlers } from "./socket/socketHandlers";
+import { ClientToServerEvents, ServerToClientEvents } from "./types";
 
 export class App {
-  public app: Application
-  public server: http.Server
-  public io: Server
-  private socketHandlers: SocketHandlers
+  public app: Application;
+  public server: http.Server;
+  public io: Server<ClientToServerEvents, ServerToClientEvents>;
+  private socketHandlers: SocketHandlers;
 
   constructor() {
-    this.app = express()
-    this.server = http.createServer(this.app)
-    this.socketHandlers = new SocketHandlers()
+    this.app = express();
+    this.server = http.createServer(this.app);
 
-    // Initialize Socket.IO - this fixes the "no initializer" error
+    // Socket.IO Setup with CORS
     this.io = new Server(this.server, {
       cors: {
         origin: environment.get("FRONTEND_URL"),
         methods: ["GET", "POST"],
         credentials: true,
       },
-    })
+    });
 
-    this.initializeSocket()
-    this.initializeMiddlewares()
-    this.initializeRoutes()
-    this.initializeErrorHandling()
-  }
+    this.socketHandlers = new SocketHandlers();
 
-  private initializeSocket(): void {
-    this.socketHandlers.handleConnection(this.io)
+    // Initialization Order Matters!
+    this.initializeMiddlewares();
+    this.initializeRoutes();
+    this.initializeSocket();
+    this.initializeErrorHandling(); // Error handlers must be last
   }
 
   private initializeMiddlewares(): void {
-    // Security middleware
-    this.app.use(helmet())
+    // Security Headers
+    this.app.use(helmet());
 
-    // Rate limiting
+    // Rate Limiting (Prevent DDoS/Spam)
     const limiter = rateLimit({
       windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 100, // limit each IP to 100 requests per windowMs
+      max: 100, // Limit each IP to 100 requests per windowMs
       message: "Too many requests from this IP, please try again later.",
-    })
-    this.app.use(limiter)
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+    this.app.use(limiter);
 
     // CORS
     this.app.use(
@@ -66,71 +70,70 @@ export class App {
         origin: environment.get("FRONTEND_URL"),
         credentials: true,
       }),
-    )
+    );
 
-    // Body parsing
-    this.app.use(express.json({ limit: "10mb" }))
-    this.app.use(express.urlencoded({ extended: true }))
-    this.app.use(cookieParser())
-    
+    // Body Parsing
+    this.app.use(express.json({ limit: "10mb" }));
+    this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(cookieParser());
 
-    // Request logging
-    this.app.use((req, res, next) => {
-      logger.info(`${req.method} ${req.path}`, {
-        ip: req.ip,
-        userAgent: req.get("User-Agent"),
-      })
-      next()
-    })
+    // Custom Request Logger
+    this.app.use(requestLogger);
   }
 
   private initializeRoutes(): void {
-    // Health check
+    // Health Check
     this.app.get("/health", (req, res) => {
       res.status(200).json({
         status: "OK",
-        timestamp: new Date().toISOString(),
+        env: environment.get("NODE_ENV"),
         uptime: process.uptime(),
-      })
-    })
+        timestamp: new Date().toISOString(),
+      });
+    });
 
-    // API routes
-    this.app.use("/api/users", userRoutes)
-    this.app.use("/api/admin", adminRoutes)
-    this.app.use("/api/buses", busRoutes)
-    this.app.use("/api/dashboard", dashboardRoutes)
+    // API Routes
+    this.app.use("/api/users", userRoutes);
+    this.app.use("/api/admin", adminRoutes);
+    this.app.use("/api/buses", busRoutes);
+    this.app.use("/api/dashboard", dashboardRoutes);
+  }
 
-    // At the end, after all routes:
-    this.app.use(errorHandler)
+  private initializeSocket(): void {
+    this.socketHandlers.handleConnection(this.io);
   }
 
   private initializeErrorHandling(): void {
-    this.app.use(notFoundHandler)
-    this.app.use(errorHandler)
+    this.app.use(notFoundHandler);
+    this.app.use(errorHandler);
   }
 
   public async start(): Promise<void> {
     try {
-      await databaseConnection.connect()
+      await databaseConnection.connect();
 
-      const PORT = environment.get("PORT")
+      const PORT = environment.get("PORT");
       this.server.listen(PORT, () => {
-        logger.info(`🚀 Server running on http://localhost:${PORT}`)
-        logger.info(`📊 Environment: ${environment.get("NODE_ENV")}`)
-      })
+        logger.info(`🚀 Server running on http://localhost:${PORT}`);
+        logger.info(`🌍 Environment: ${environment.get("NODE_ENV")}`);
+      });
     } catch (error) {
-      logger.error("Failed to start server:", error)
-      process.exit(1)
+      logger.error("❌ Failed to start application:", error);
+      process.exit(1);
     }
   }
 
   public async stop(): Promise<void> {
     try {
-      await databaseConnection.disconnect()
-      this.server.close()
-      logger.info("Server stopped gracefully")
+      await databaseConnection.disconnect();
+      this.server.close(() => {
+        logger.info("🛑 HTTP Server closed");
+      });
+      this.io.close(() => {
+        logger.info("🛑 Socket.IO server closed");
+      });
     } catch (error) {
-      logger.error("Error stopping server:", error)
+      logger.error("❌ Error during shutdown:", error);
     }
   }
 }

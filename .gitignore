@@ -1,7 +1,96 @@
-# Node modules
+# =========================
+# General (Applies to both)
+# =========================
+# Dependency directories
 node_modules/
-# Environment variables
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Environment Variables (CRITICAL: Never push these!)
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+backend/.env
+frontend/.env
+
+# Testing & Coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# Backend Specifics
+# =========================
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
 # Build output
-dist/
-build/
+backend/dist/
+backend/build/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache
+.npm
+.eslintcache
+
+# =========================
+# Frontend Specifics
+# =========================
+# Production build output (React/Vite/Next.js)
+frontend/build/
+frontend/dist/
+frontend/.next/
+frontend/out/
+
+# Parcel-bundler cache
+.cache/
+.parcel-cache/
+
+# Nuxt.js build
+frontend/.nuxt/
+
+# Vuepress build
+frontend/.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# Dynamically generated types
+frontend/generated/

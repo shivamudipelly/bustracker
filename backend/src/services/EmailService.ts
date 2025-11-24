@@ -1,9 +1,9 @@
-import nodemailer from "nodemailer"
-import { environment } from "../config/environment"
-import { logger } from "../config/logger"
+import nodemailer from "nodemailer";
+import { environment } from "../config/environment";
+import { logger } from "../config/logger";
 
 export class EmailService {
-  private transporter: nodemailer.Transporter
+  private transporter: nodemailer.Transporter;
 
   constructor() {
     this.transporter = nodemailer.createTransport({
@@ -12,11 +12,15 @@ export class EmailService {
         user: environment.get("EMAIL_USER"),
         pass: environment.get("EMAIL_PASS"),
       },
-    })
+    });
   }
 
-  async sendVerificationEmail(email: string, name: string, token: string): Promise<void> {
-    const verificationLink = `${environment.get("FRONTEND_URL")}/verify-email?token=${token}`
+  async sendVerificationEmail(
+    email: string,
+    name: string,
+    token: string,
+  ): Promise<void> {
+    const verificationLink = `${environment.get("FRONTEND_URL")}/verify-email?token=${token}`;
 
     const html = `
       <html>
@@ -30,14 +34,18 @@ export class EmailService {
           </div>
         </body>
       </html>
-    `
+    `;
 
-    await this.sendEmail(email, "Verify Your Email", html)
-    logger.info(`Verification email sent to: ${email}`)
+    await this.sendEmail(email, "Verify Your Email", html);
+    logger.info(`Verification email sent to: ${email}`);
   }
 
-  async sendPasswordResetEmail(email: string, name: string, token: string): Promise<void> {
-    const resetLink = `${environment.get("FRONTEND_URL")}/reset-password?token=${token}`
+  async sendPasswordResetEmail(
+    email: string,
+    name: string,
+    token: string,
+  ): Promise<void> {
+    const resetLink = `${environment.get("FRONTEND_URL")}/reset-password?token=${token}`;
 
     const html = `
       <html>
@@ -52,23 +60,27 @@ export class EmailService {
           </div>
         </body>
       </html>
-    `
+    `;
 
-    await this.sendEmail(email, "Password Reset Request", html)
-    logger.info(`Password reset email sent to: ${email}`)
+    await this.sendEmail(email, "Password Reset Request", html);
+    logger.info(`Password reset email sent to: ${email}`);
   }
 
-  private async sendEmail(to: string, subject: string, html: string): Promise<void> {
+  private async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+  ): Promise<void> {
     try {
       await this.transporter.sendMail({
         from: environment.get("EMAIL_USER"),
         to,
         subject,
         html,
-      })
+      });
     } catch (error) {
-      logger.error("Failed to send email:", error)
-      throw new Error("Failed to send email")
+      logger.error("Failed to send email:", error);
+      throw new Error("Failed to send email");
     }
   }
 }

@@ -1,37 +1,32 @@
-import { App } from "./app"
-import { logger } from "./config/logger"
-import { requestLogger } from "./middleware/requestLogger"
+import { App } from "./app";
+import { logger } from "./config/logger";
 
-const app = new App()
-
-// Graceful shutdown
-process.on("SIGTERM", async () => {
-  logger.info("SIGTERM received, shutting down gracefully")
-  await app.stop()
-  process.exit(0)
-})
-
-process.on("SIGINT", async () => {
-  logger.info("SIGINT received, shutting down gracefully")
-  await app.stop()
-  process.exit(0)
-})
-
-process.on("unhandledRejection", (reason, promise) => {
-  logger.error("Unhandled Rejection at:", promise, "reason:", reason)
-  process.exit(1)
-})
-
-process.on("uncaughtException", (error) => {
-  logger.error("Uncaught Exception:", error)
-  process.exit(1)
-})
-
-// Use before your routes
-app.app.use(requestLogger)
+const app = new App();
 
 // Start the server
 app.start().catch((error) => {
-  logger.error("Failed to start application:", error)
-  process.exit(1)
-})
+  logger.error("❌ Uncaught Error during startup:", error);
+  process.exit(1);
+});
+
+// Graceful Shutdown Logic
+const shutdown = async (signal: string) => {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+  await app.stop();
+  process.exit(0);
+};
+
+// Handle kill commands (Ctrl+C, Docker stop, etc.)
+process.on("SIGTERM", () => shutdown("SIGTERM"));
+process.on("SIGINT", () => shutdown("SIGINT"));
+
+// Handle uncaught software errors
+process.on("uncaughtException", (error) => {
+  logger.error("❌ Uncaught Exception:", error);
+  shutdown("uncaughtException");
+});
+
+process.on("unhandledRejection", (reason) => {
+  logger.error("❌ Unhandled Rejection:", reason);
+  shutdown("unhandledRejection");
+});

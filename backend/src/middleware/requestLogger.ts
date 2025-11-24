@@ -17,11 +17,14 @@ export function requestLogger(req: Request, res: Response, next: NextFunction) {
   const oldJson = res.json;
   res.json = function (data) {
     const duration = Date.now() - start;
-    logger.info(`[RESPONSE] ${req.method} ${req.originalUrl} ${res.statusCode} (${duration}ms)`, {
-      status: res.statusCode,
-      response: data,
-    });
-    // @ts-ignore
+    logger.info(
+      `[RESPONSE] ${req.method} ${req.originalUrl} ${res.statusCode} (${duration}ms)`,
+      {
+        status: res.statusCode,
+        response: data,
+      },
+    );
+
     return oldJson.call(this, data);
   };
 

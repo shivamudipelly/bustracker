@@ -1,19 +1,5 @@
-import mongoose, { Document, Schema, Types } from "mongoose";
-import type { ILocation, IStop } from "../types";
-
-// Bus Document Interface
-export interface IBus extends Document<Types.ObjectId> {
-  busId: number;
-  destination: string;
-  driverId: mongoose.Types.ObjectId; // Will be populated as User
-  location: ILocation;
-  stops: IStop[];
-  createdAt: Date;
-  updatedAt: Date;
-  capacity: number;
-  source?: string;
-  status: 'active' | 'inactive' | 'maintenance';
-}
+import mongoose, { Schema } from "mongoose";
+import { IBus, ILocation, IStop } from "../types";
 
 const LocationSchema = new Schema<ILocation>({
   latitude: { type: Number, required: true },
@@ -26,16 +12,18 @@ const StopSchema = new Schema<IStop>({
   coordinates: {
     type: [Number],
     required: true,
-    validate: [(val: number[]) => val.length === 2, "Coordinates must have exactly 2 elements"],
+    validate: [
+      (val: number[]) => val.length === 2,
+      "Coordinates must have exactly 2 elements",
+    ],
   },
 });
 
-// ✅ Final Bus Schema
 const BusSchema = new Schema<IBus>(
   {
     busId: { type: Number, required: true, unique: true },
     destination: { type: String, required: true },
-    source: { type: String, default: 'Anurag University' },
+    source: { type: String, default: "Anurag University" },
     driverId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     status: {
       type: String,
@@ -49,6 +37,11 @@ const BusSchema = new Schema<IBus>(
   { timestamps: true },
 );
 
-// ✅ Model & Type Export
+// ✅ DB OPTIMIZATION: Index for fast duplicate checks
+BusSchema.index({ destination: 1 });
+
+// ✅ DB OPTIMIZATION: Index for looking up a driver's bus (Dashboard)
+BusSchema.index({ driverId: 1 });
+
 const Bus = mongoose.model<IBus>("Bus", BusSchema);
 export default Bus;

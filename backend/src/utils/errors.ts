@@ -1,23 +1,23 @@
-import { HttpStatus } from "../types"
+import { HttpStatus } from "../types";
 
 /**
  * Base class for all custom application errors.
  */
 export class AppError extends Error {
-  public readonly statusCode: HttpStatus
-  public readonly isOperational: boolean
+  public readonly statusCode: HttpStatus;
+  public readonly isOperational: boolean;
 
   constructor(
     message: string,
     statusCode: HttpStatus = HttpStatus.INTERNAL_SERVER_ERROR,
-    isOperational: boolean = true
+    isOperational: boolean = true,
   ) {
-    super(message)
-    this.statusCode = statusCode
-    this.isOperational = isOperational
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = isOperational;
 
     // Maintains proper stack trace in V8
-    Error.captureStackTrace(this, this.constructor)
+    Error.captureStackTrace(this, this.constructor);
   }
 }
 
@@ -26,7 +26,7 @@ export class AppError extends Error {
  */
 export class ValidationError extends AppError {
   constructor(message: string = "Invalid input") {
-    super(message, HttpStatus.BAD_REQUEST)
+    super(message, HttpStatus.BAD_REQUEST);
   }
 }
 
@@ -35,7 +35,7 @@ export class ValidationError extends AppError {
  */
 export class NotFoundError extends AppError {
   constructor(resource: string = "Resource") {
-    super(`${resource} not found`, HttpStatus.NOT_FOUND)
+    super(`${resource} not found`, HttpStatus.NOT_FOUND);
   }
 }
 
@@ -44,7 +44,7 @@ export class NotFoundError extends AppError {
  */
 export class UnauthorizedError extends AppError {
   constructor(message: string = "Unauthorized") {
-    super(message, HttpStatus.UNAUTHORIZED)
+    super(message, HttpStatus.UNAUTHORIZED);
   }
 }
 
@@ -53,7 +53,7 @@ export class UnauthorizedError extends AppError {
  */
 export class ForbiddenError extends AppError {
   constructor(message: string = "Forbidden") {
-    super(message, HttpStatus.FORBIDDEN)
+    super(message, HttpStatus.FORBIDDEN);
   }
 }
 
@@ -62,6 +62,6 @@ export class ForbiddenError extends AppError {
  */
 export class ConflictError extends AppError {
   constructor(message: string = "Conflict occurred") {
-    super(message, HttpStatus.CONFLICT)
+    super(message, HttpStatus.CONFLICT);
   }
 }

@@ -1,104 +1,97 @@
-import type { Request, Response, NextFunction } from "express"
-import { UserService } from "../services/UserService"
-import { ResponseHandler } from "../utils/response"
-import { validate, createUserSchema, updateUserSchema } from "../utils/validators"
+import { Request, Response } from "express";
+import { UserService } from "@/services/UserService";
+import { ResponseHandler } from "@/utils/response";
+import { catchAsync } from "@/utils/catchAsync";
+import {
+  validate,
+  createUserSchema,
+  updateUserSchema,
+} from "@/utils/validators";
+import { HttpStatus } from "@/types";
 
 export class AdminController {
-  private userService: UserService
+  private userService: UserService;
 
   constructor() {
-    this.userService = new UserService()
+    this.userService = new UserService();
   }
 
-  getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const users = await this.userService.getAllUsers()
-      const sanitizedUsers = users.map((user) => ({
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        isVerified: user.isVerified,
-        role: user.role,
-        phone: user.phone ? user.phone : "N/A",
-        status: user.status,
-        createdAt: user.createdAt.toISOString(),
-        lastLogin: user.lastLogin ? user.lastLogin.toISOString() : "N/A",
-      }))
+  // ✅ FIX: Implements Pagination for Users
+  getAllUsers = catchAsync(async (req: Request, res: Response) => {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 20;
 
-      ResponseHandler.success(res, sanitizedUsers, "Users retrieved successfully")
-    } catch (error) {
-      next(error)
+    const { users, total } = await this.userService.getAllUsers(page, limit);
+
+    const sanitizedUsers = users.map((user) => ({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      isVerified: user.isVerified,
+      role: user.role,
+      phone: user.phone || "N/A",
+      status: user.status,
+      createdAt: user.createdAt,
+      lastLogin: user.lastLogin || null,
+    }));
+
+    ResponseHandler.paginated(
+      res,
+      sanitizedUsers,
+      page,
+      limit,
+      total,
+      "Users retrieved successfully",
+    );
+  });
+
+  addUser = catchAsync(async (req: Request, res: Response) => {
+    const userData = validate(createUserSchema, req.body);
+    const user = await this.userService.createUser({ ...userData });
+
+    if (user.verificationToken) {
+      await this.userService.verifyUser(user.verificationToken);
     }
-  }
 
-  addUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const userData = validate(createUserSchema, req.body)
-      const user = await this.userService.createUser({ ...userData })
-      console.log(user);
+    const responseUser = {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    };
 
-      // If admin is adding user, verify immediately
-      if (user.verificationToken) {
-        await this.userService.verifyUser(user.verificationToken)
-      }
+    ResponseHandler.success(
+      res,
+      responseUser,
+      "User added successfully",
+      HttpStatus.CREATED,
+    );
+  });
 
-      // Prepare response without sensitive data
-      const responseUser = {
-        id: user._id?.toString?.() || user.id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        status: user.status,
-        isVerified: user.isVerified,
-        createdAt: user.createdAt,
-        lastLogin: user.lastLogin || "Never",
-      }
+  getUserByEmail = catchAsync(async (req: Request, res: Response) => {
+    const { email } = req.params;
+    const user = await this.userService.getUserByEmail(email);
 
-      ResponseHandler.success(res, responseUser, "User added successfully", 201)
-    } catch (error) {
-      next(error)
+    if (!user) {
+      ResponseHandler.error(res, "User not found", HttpStatus.NOT_FOUND);
+      return;
     }
-  }
 
+    ResponseHandler.success(res, user, "User retrieved successfully");
+  });
 
-  getUserByEmail = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { email } = req.params
-      const user = await this.userService.getUserByEmail(email)
+  updateUser = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const userData = validate(updateUserSchema, req.body);
 
-      if (!user) {
-        ResponseHandler.error(res, "User not found", 404)
-        return
-      }
+    await this.userService.updateUser(id, userData);
+    ResponseHandler.success(res, null, "User updated successfully");
+  });
 
-      const sanitizedUser = { _id: user._id, email: user.email }
-
-      ResponseHandler.success(res, sanitizedUser, "User retrieved successfully")
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { id } = req.params
-      const userData = validate(updateUserSchema, req.body)
-
-      await this.userService.updateUser(id, userData)
-      ResponseHandler.success(res, null, "User updated successfully")
-    } catch (error) {
-      next(error)
-    }
-  }
-
-  deleteUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const { id } = req.params
-      await this.userService.deleteUser(id)
-      ResponseHandler.success(res, null, "User deleted successfully")
-    } catch (error) {
-      next(error)
-    }
-  }
+  deleteUser = catchAsync(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    await this.userService.deleteUser(id);
+    ResponseHandler.success(res, null, "User deleted successfully");
+  });
 }
